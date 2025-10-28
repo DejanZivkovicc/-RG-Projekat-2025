@@ -9,6 +9,7 @@
 #include <engine/graphics/Camera.hpp>
 #include <engine/core/Controller.hpp>
 #include <engine/platform/PlatformEventObserver.hpp>
+#include <engine/resources/Model.hpp>
 
 struct ImGuiContext;
 
@@ -153,6 +154,31 @@ public:
         return m_ortho_params;
     }
 
+    void initialize_floor();
+
+    void initialize_grass();
+
+    void initialize_light_cube_mesh(const std::vector<float> &vertices, const std::vector<unsigned int> &indices);
+
+    void initialize_sphere_mesh(const std::vector<float> &vertices, const std::vector<unsigned int> &indices);
+
+    void setup_tree_instancing(const std::vector<glm::mat4> &modelMatrices, unsigned int amount,
+                               engine::resources::Model *treeModel);
+
+    void draw_floor();
+
+    void draw_grass();
+
+    void draw_light_cube();
+
+    void draw_sphere();
+
+    /**
+    * @brief Draws an instanced model using the previously bound instance VBO.
+    */
+    void draw_instanced_model(engine::resources::Model *model, engine::resources::Shader *shader, unsigned int amount);
+    // --
+
 private:
     /**
     * @brief Initializes OpenGL, ImGUI, and projection matrix params;
@@ -167,6 +193,14 @@ private:
     glm::mat4 m_projection_matrix{};
     Camera m_camera{};
     ImGuiContext *m_imgui_context{};
+
+    unsigned int m_floor_vao{0}, m_floor_vbo{0};
+    unsigned int m_grass_vao{0}, m_grass_vbo{0};
+    unsigned int m_light_cube_vao{0}, m_light_cube_vbo{0}, m_light_cube_ebo{0};
+    unsigned int m_sphere_vao{0}, m_sphere_vbo{0}, m_sphere_ebo{0};
+    size_t m_light_cube_index_count{0}, m_sphere_index_count{0};
+
+    unsigned int m_tree_instance_vbo{0};
 };
 
 /**

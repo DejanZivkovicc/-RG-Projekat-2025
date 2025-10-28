@@ -11,6 +11,153 @@
 
 namespace engine::graphics {
 
+namespace {
+float floorVertices[] = {
+        // positions              // texture Coords     // Normal Coords
+        15.0f, -2.5f, 15.0f, 2.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        -15.0f, -2.5f, 15.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        -15.0f, -2.5f, -15.0f, 0.0f, 2.0f, 0.0f, 1.0f, 0.0f,
+
+        15.0f, -2.5f, 15.0f, 2.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+        -15.0f, -2.5f, -15.0f, 0.0f, 2.0f, 0.0f, 1.0f, 0.0f,
+        15.0f, -2.5f, -15.0f, 2.0f, 2.0f, 0.0f, 1.0f, 0.0f
+};
+
+float grassVertices[] = {
+        // positions         // texture Coords
+        0.0f, 0.5f, 0.0f, 0.0f, 0.0f,
+        0.0f, -0.5f, 0.0f, 0.0f, 1.0f,
+        1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
+
+        0.0f, 0.5f, 0.0f, 0.0f, 0.0f,
+        1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
+        1.0f, 0.5f, 0.0f, 1.0f, 0.0f
+};
+}
+
+void GraphicsController::initialize_floor() {
+    glGenVertexArrays(1, &m_floor_vao);
+    glGenBuffers(1, &m_floor_vbo);
+
+    glBindVertexArray(m_floor_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_floor_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
+
+    // Position attribute (3 floats)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) 0);
+    glEnableVertexAttribArray(0);
+
+    // Texture coordinate attribute (2 floats)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // Normal attribute (3 floats)
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (5 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    glBindVertexArray(0);
+}
+
+void GraphicsController::initialize_grass() {
+    glGenVertexArrays(1, &m_grass_vao);
+    glGenBuffers(1, &m_grass_vbo);
+
+    glBindVertexArray(m_grass_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_grass_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(grassVertices), grassVertices, GL_STATIC_DRAW);
+
+    // Position attribute (3 floats)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) 0);
+    glEnableVertexAttribArray(0);
+
+    // Texture coordinate attribute (2 floats)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+}
+
+void GraphicsController::initialize_light_cube_mesh(const std::vector<float> &vertices,
+                                                    const std::vector<unsigned int> &indices) {
+    glGenVertexArrays(1, &m_light_cube_vao);
+    glGenBuffers(1, &m_light_cube_vbo);
+    glGenBuffers(1, &m_light_cube_ebo);
+
+    glBindVertexArray(m_light_cube_vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_light_cube_vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_light_cube_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+
+    // Position attribute (3 floats)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+    m_light_cube_index_count = indices.size();
+}
+
+void GraphicsController::initialize_sphere_mesh(const std::vector<float> &vertices,
+                                                const std::vector<unsigned int> &indices) {
+    glGenVertexArrays(1, &m_sphere_vao);
+    glGenBuffers(1, &m_sphere_vbo);
+    glGenBuffers(1, &m_sphere_ebo);
+
+    glBindVertexArray(m_sphere_vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+
+    // Position attribute (3 floats)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+    m_sphere_index_count = indices.size();
+}
+
+void GraphicsController::setup_tree_instancing(const std::vector<glm::mat4> &modelMatrices, unsigned int amount,
+                                               engine::resources::Model *treeModel) {
+    glGenBuffers(1, &m_tree_instance_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_tree_instance_vbo);
+    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    treeModel->add_instance_vbo(m_tree_instance_vbo);
+}
+
+void GraphicsController::draw_floor() {
+    glBindVertexArray(m_floor_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void GraphicsController::draw_grass() {
+    glBindVertexArray(m_grass_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void GraphicsController::draw_light_cube() {
+    glBindVertexArray(m_light_cube_vao);
+    glDrawElements(GL_TRIANGLES, m_light_cube_index_count, GL_UNSIGNED_INT, 0);
+}
+
+void GraphicsController::draw_sphere() {
+    glBindVertexArray(m_sphere_vao);
+    glDrawElements(GL_TRIANGLES, m_sphere_index_count, GL_UNSIGNED_INT, 0);
+}
+
+void GraphicsController::draw_instanced_model(engine::resources::Model *model, engine::resources::Shader *shader,
+                                              unsigned int amount) {
+    if (model) {
+        model->draw_instanced(shader, amount);
+    }
+}
+
 void GraphicsController::initialize() {
     const int opengl_initialized = gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
     RG_GUARANTEE(opengl_initialized, "OpenGL failed to init!");
@@ -49,6 +196,24 @@ void GraphicsController::terminate() {
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
+    }
+
+    glDeleteVertexArrays(1, &m_floor_vao);
+    glDeleteBuffers(1, &m_floor_vbo);
+
+    glDeleteVertexArrays(1, &m_grass_vao);
+    glDeleteBuffers(1, &m_grass_vbo);
+
+    glDeleteVertexArrays(1, &m_light_cube_vao);
+    glDeleteBuffers(1, &m_light_cube_vbo);
+    glDeleteBuffers(1, &m_light_cube_ebo);
+
+    glDeleteVertexArrays(1, &m_sphere_vao);
+    glDeleteBuffers(1, &m_sphere_vbo);
+    glDeleteBuffers(1, &m_sphere_ebo);
+
+    if (m_tree_instance_vbo != 0) {
+        glDeleteBuffers(1, &m_tree_instance_vbo);
     }
 }
 

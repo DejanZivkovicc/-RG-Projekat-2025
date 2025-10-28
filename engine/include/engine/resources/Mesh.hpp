@@ -44,6 +44,19 @@ public:
     */
     void destroy();
 
+    /**
+    * @brief Draws the mesh using a given shader with instancing.
+    * @param shader The shader to use for drawing.
+    * @param amount The number of instances to draw.
+    */
+    void draw_instanced(const Shader *shader, int amount);
+
+    /**
+    * @brief Adds a VBO containing instance-specific data (like mat4 model matrices) to the mesh's VAO.
+    * @param buffer_id The ID of the VBO containing the instance data.
+    */
+    void add_instance_vbo(uint32_t buffer_id);
+
 private:
     /**
     * @brief Constructs a Mesh object.
