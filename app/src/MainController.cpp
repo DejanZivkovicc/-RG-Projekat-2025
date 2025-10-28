@@ -1,4 +1,3 @@
-#include "../../engine/libs/glad/include/glad/glad.h"
 #include <engine/graphics/GraphicsController.hpp>
 #include <engine/graphics/OpenGL.hpp>
 #include <engine/platform/PlatformController.hpp>
@@ -6,28 +5,16 @@
 
 #include <MainController.hpp>
 #include <spdlog/spdlog.h>
-#include <GL/gl.h>
 #include "GuiController.hpp"
-#include "../../engine/libs/glfw/include/GLFW/glfw3.h"
-
 
 namespace app {
+
+constexpr int32_t gl_texture0_const = 0x84C0;
 
 class MainPlatformEventObserver : public engine::platform::PlatformEventObserver {
 public:
     void on_mouse_move(engine::platform::MousePosition position) override;
 };
-
-// Lighting (moon + 2 light cubes)
-glm::vec3 lightPos1(-4.2f, 25.0f, -45.0f);
-glm::vec3 lightPos2(-4.33f, -0.4f, -3.93);
-glm::vec3 lightPos3(-3.53f, -0.4f, -3.93f);
-
-
-// Lightning colors
-glm::vec3 sphereColor(0.7f, 0.8f, 1.0f);
-glm::vec3 lightCubeColor = glm::vec3(1.0f, 1.0f, 0.0f);
-
 
 void MainPlatformEventObserver::on_mouse_move(engine::platform::MousePosition position) {
     auto gui_controller = engine::core::Controller::get<GUIController>();
@@ -48,119 +35,32 @@ void MainPlatformEventObserver::on_mouse_move(engine::platform::MousePosition po
 void MainController::initialize() {
     auto resources = engine::core::Controller::get<engine::resources::ResourcesController>();
     auto platform = engine::core::Controller::get<engine::platform::PlatformController>();
+    auto graphics = engine::core::Controller::get<engine::graphics::GraphicsController>();
+
     platform->register_platform_event_observer(std::make_unique<MainPlatformEventObserver>());
     engine::graphics::OpenGL::enable_depth_testing();
 
+    // --------------------------------lighting--------------------------------
+    m_light_pos1 = glm::vec3(-4.2f, 25.0f, -45.0f);
+    m_light_pos2 = glm::vec3(-4.33f, -0.4f, -3.93f);
+    m_light_pos3 = glm::vec3(-3.53f, -0.4f, -3.93f);
+
+    m_sphere_color = glm::vec3(0.7f, 0.8f, 1.0f);
+    m_light_cube_color = glm::vec3(1.0f, 1.0f, 0.0f);
+
     // --------------------------------floor--------------------------------
-    float floorVertices[] = {
-            // positions              // texture Coords     // Normal Coords
-            15.0f, -2.5f, 15.0f, 2.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-            -15.0f, -2.5f, 15.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-            -15.0f, -2.5f, -15.0f, 0.0f, 2.0f, 0.0f, 1.0f, 0.0f,
-
-            15.0f, -2.5f, 15.0f, 2.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-            -15.0f, -2.5f, -15.0f, 0.0f, 2.0f, 0.0f, 1.0f, 0.0f,
-            15.0f, -2.5f, -15.0f, 2.0f, 2.0f, 0.0f, 1.0f, 0.0f
-    };
-
-    // Generate VAO and VBO
-    glGenVertexArrays(1, &floorVAO);
-    glGenBuffers(1, &floorVBO);
-
-    glBindVertexArray(floorVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, floorVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(floorVertices), floorVertices, GL_STATIC_DRAW);
-
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) 0);
-    glEnableVertexAttribArray(0);
-
-    // Texture coordinate attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *) (5 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    graphics->initialize_floor();
 
     // --------------------------------grass--------------------------------
-
-    float grassVertices[] = {
-            // positions         // texture Coords          // Normal Coords
-            0.0f, 0.5f, 0.0f, 0.0f, 0.0f,
-            0.0f, -0.5f, 0.0f, 0.0f, 1.0f,
-            1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
-
-            0.0f, 0.5f, 0.0f, 0.0f, 0.0f,
-            1.0f, -0.5f, 0.0f, 1.0f, 1.0f,
-            1.0f, 0.5f, 0.0f, 1.0f, 0.0f
-
-            // texture coords have swapped y coordinates because texture is flipped upside down
-    };
-
-    glGenVertexArrays(1, &grassVAO);
-    glGenBuffers(1, &grassVBO);
-
-    glBindVertexArray(grassVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, grassVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(grassVertices), grassVertices, GL_STATIC_DRAW);
-
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) 0);
-    glEnableVertexAttribArray(0);
-
-    // Texture coordinate attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    glBindVertexArray(0);
+    graphics->initialize_grass();
 
     // --------------------------------lightCube--------------------------------
-    SphereMesh lightCube = generateSphereMesh(1.0f, 36, 18);
-
-    glGenVertexArrays(1, &lightCubeVAO);
-    glGenBuffers(1, &lightCubeVBO);
-    glGenBuffers(1, &lightCubeEBO);
-
-    glBindVertexArray(lightCubeVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, lightCubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, lightCube.vertices
-                                           .size() * sizeof(float), &lightCube.vertices[0], GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lightCubeEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, lightCube.indices
-                                                   .size() * sizeof(unsigned int), &lightCube.indices[0],
-                 GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(0);
-    lightCubeIndexCount = lightCube.indices
-                                   .size();
+    SphereMesh lightCube = generate_sphere_mesh(1.0f, 36, 18);
+    graphics->initialize_light_cube_mesh(lightCube.vertices, lightCube.indices);
 
     // --------------------------------sphere--------------------------------
-    SphereMesh sphere = generateSphereMesh(1.0f, 36, 18);
-
-    glGenVertexArrays(1, &sphereVAO);
-    glGenBuffers(1, &sphereVBO);
-    glGenBuffers(1, &sphereEBO);
-
-    glBindVertexArray(sphereVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, sphereVBO);
-    glBufferData(GL_ARRAY_BUFFER, sphere.vertices
-                                        .size() * sizeof(float), &sphere.vertices[0], GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sphereEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphere.indices
-                                                .size() * sizeof(unsigned int), &sphere.indices[0], GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) 0);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(0);
-    sphereIndexCount = sphere.indices
-                             .size();
+    SphereMesh sphere = generate_sphere_mesh(1.0f, 36, 18);
+    graphics->initialize_sphere_mesh(sphere.vertices, sphere.indices);
 
     // --------------------------------trees--------------------------------
     const float area_radius = 65.0f;     // Trees have to be in <75.0f area (floor area)
@@ -180,12 +80,11 @@ void MainController::initialize() {
     };
 
     // Matrix
-    treeModelMatrices.resize(treeAmount);
+    m_tree_model_matrices.resize(m_tree_amount);
     srand(time(NULL));
-    float angle_step = 360.0f / (float) treeAmount; // For even distribution of trees
 
     unsigned int matrices_generated = 0;
-    while (matrices_generated < treeAmount) {
+    while (matrices_generated < m_tree_amount) {
         glm::mat4 model = glm::mat4(1.0f);
 
         // Generating random position withing the circle (floor height included)
@@ -221,18 +120,11 @@ void MainController::initialize() {
         model = glm::rotate(model, glm::radians(rotAngle), glm::vec3(0.0f, 1.0f, 0.0f));
 
         // Add generated matrix and continue
-        treeModelMatrices[matrices_generated++] = model;
+        m_tree_model_matrices[matrices_generated++] = model;
     }
 
-    // VBO SETUP for matrix instancing
-    glGenBuffers(1, &treeInstanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, treeInstanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, treeAmount * sizeof(glm::mat4), &treeModelMatrices[0], GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // Adding VBO-a to the model
     engine::resources::Model *tree = resources->model("Tree");
-    tree->add_instance_vbo(treeInstanceVBO);
+    graphics->setup_tree_instancing(m_tree_model_matrices, m_tree_amount, tree);
 }
 
 bool MainController::loop() {
@@ -250,22 +142,22 @@ void MainController::set_model_lighting(engine::resources::Shader *shader) {
                                         ->Position);
 
     // Light 1 (moon)
-    shader->set_vec3("light1.position", lightPos1);
-    shader->set_vec3("light1.ambient", sphereColor * 0.25f);
-    shader->set_vec3("light1.diffuse", sphereColor * 0.45f);
-    shader->set_vec3("light1.specular", sphereColor * 0.2f);
+    shader->set_vec3("light1.position", m_light_pos1);
+    shader->set_vec3("light1.ambient", m_sphere_color * 0.25f);
+    shader->set_vec3("light1.diffuse", m_sphere_color * 0.45f);
+    shader->set_vec3("light1.specular", m_sphere_color * 0.2f);
 
     // Light 2 (lamp)
-    shader->set_vec3("light2.position", lightPos2);
-    shader->set_vec3("light2.ambient", lightCubeColor * 0.05f);
-    shader->set_vec3("light2.diffuse", lightCubeColor * 0.13f);
-    shader->set_vec3("light2.specular", lightCubeColor * 0.04f);
+    shader->set_vec3("light2.position", m_light_pos2);
+    shader->set_vec3("light2.ambient", m_light_cube_color * 0.05f);
+    shader->set_vec3("light2.diffuse", m_light_cube_color * 0.13f);
+    shader->set_vec3("light2.specular", m_light_cube_color * 0.04f);
 
     // Light 3 (lamp)
-    shader->set_vec3("light2.position", lightPos3);
-    shader->set_vec3("light2.ambient", lightCubeColor * 0.05f);
-    shader->set_vec3("light2.diffuse", lightCubeColor * 0.13f);
-    shader->set_vec3("light2.specular", lightCubeColor * 0.04f);
+    shader->set_vec3("light2.position", m_light_pos3);
+    shader->set_vec3("light2.ambient", m_light_cube_color * 0.05f);
+    shader->set_vec3("light2.diffuse", m_light_cube_color * 0.13f);
+    shader->set_vec3("light2.specular", m_light_cube_color * 0.04f);
 
     // Material
     shader->set_float("shininess", 16.0f);
@@ -326,7 +218,7 @@ void MainController::draw_tree() {
     shader->set_mat4("view", graphics->camera()
                                      ->view_matrix());
 
-    tree->draw_instanced(shader, treeAmount);
+    graphics->draw_instanced_model(tree, shader, m_tree_amount);
 }
 
 void MainController::draw_floor() {
@@ -349,13 +241,10 @@ void MainController::draw_floor() {
     shader->set_mat4("model", model);
 
     // Bind the texture
-    texture->bind(GL_TEXTURE0); // Binds texture to GL_TEXTURE0
+    texture->bind(gl_texture0_const);//(GL_TEXTURE0); // Binds texture to GL_TEXTURE0
     shader->set_int("texture1", 0); // shader has a uniform 'texture1'
 
-    // Bind the texture and draw
-    glBindVertexArray(floorVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
+    graphics->draw_floor();
 }
 
 void MainController::draw_grass() {
@@ -371,7 +260,7 @@ void MainController::draw_grass() {
                                      ->view_matrix());
 
     // Bind the texture
-    texture->bind(GL_TEXTURE0); // Binds texture to GL_TEXTURE0
+    texture->bind(gl_texture0_const);//(GL_TEXTURE0); // Binds texture to GL_TEXTURE0
     shader->set_int("grassTexture", 0);
 
     std::vector<glm::vec3> vegetation{
@@ -392,9 +281,7 @@ void MainController::draw_grass() {
         model = glm::translate(model, vegetation[i]); // Position the texture in the scene
         shader->set_mat4("model", model);
 
-        // Bind the texture and draw
-        glBindVertexArray(grassVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        graphics->draw_grass();
     }
 }
 
@@ -414,15 +301,15 @@ void MainController::draw_light_cube() {
 
     engine::resources::Shader *shader = resources->shader("lightCubeShader");
     shader->use();
-    shader->set_vec3("lightCubeColor", lightCubeColor);
+    shader->set_vec3("lightCubeColor", m_light_cube_color);
 
     shader->set_mat4("projection", graphics->projection_matrix());
     shader->set_mat4("view", graphics->camera()
                                      ->view_matrix());
 
     std::vector<glm::vec3> lightPos;
-    lightPos.push_back(lightPos2);
-    lightPos.push_back(lightPos3);
+    lightPos.push_back(m_light_pos2);
+    lightPos.push_back(m_light_pos3);
     for (int i = 0; i < lightPos.size(); i++) {
         glm::mat4 model = glm::mat4(1.0f);
 
@@ -430,10 +317,7 @@ void MainController::draw_light_cube() {
         model = glm::scale(model, glm::vec3(0.05f));
         shader->set_mat4("model", model);
 
-
-        glBindVertexArray(lightCubeVAO);
-        glDrawElements(GL_TRIANGLES, lightCubeIndexCount, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        graphics->draw_light_cube();
     }
 }
 
@@ -443,21 +327,19 @@ void MainController::draw_sphere() {
 
     engine::resources::Shader *shader = resources->shader("sphereShader");
     shader->use();
-    shader->set_vec3("sphereColor", sphereColor);
+    shader->set_vec3("sphereColor", m_sphere_color);
 
     shader->set_mat4("projection", graphics->projection_matrix());
     shader->set_mat4("view", graphics->camera()
                                      ->view_matrix());
 
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, lightPos1);
+    model = glm::translate(model, m_light_pos1);
     model = glm::scale(model, glm::vec3(5.0f)); // a smaller cube
     shader->set_mat4("model", model);
 
 
-    glBindVertexArray(sphereVAO);
-    glDrawElements(GL_TRIANGLES, sphereIndexCount, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
+    graphics->draw_sphere();
 }
 
 void MainController::update_camera() {
@@ -494,28 +376,29 @@ void MainController::update_camera() {
 
     if (platform->key(engine::platform::KeyId::KEY_1)
                 .is_down()) {
-        sphereColor = glm::vec3(0.7f, 0.8f, 1.0f);
+        m_sphere_color = glm::vec3(0.7f, 0.8f, 1.0f);
     }
     if (platform->key(engine::platform::KeyId::KEY_2)
                 .is_down()) {
-        sphereColor = glm::vec3(0.541f, 0.0118f, 0.0118f);
+        m_sphere_color = glm::vec3(0.541f, 0.0118f, 0.0118f);
     }
 
     if (platform->key(engine::platform::KeyId::KEY_3)
                 .is_down()) {
-        lightCubeColor = glm::vec3(1.0f, 1.0f, 0.0f);
+        m_light_cube_color = glm::vec3(1.0f, 1.0f, 0.0f);
     }
     if (platform->key(engine::platform::KeyId::KEY_4)
                 .is_down()) {
-        lightCubeColor = glm::vec3(1.0f, 1.0f, 1.0f);
+        m_light_cube_color = glm::vec3(1.0f, 1.0f, 1.0f);
     }
     if (platform->key(engine::platform::KeyId::KEY_5)
                 .is_down()) {
-        lightCubeColor = glm::vec3(0.0f, 0.0f, 0.0f);
+        m_light_cube_color = glm::vec3(0.0f, 0.0f, 0.0f);
     }
 }
 
-MainController::SphereMesh MainController::generateSphereMesh(float radius, unsigned int sectors, unsigned int stacks) {
+MainController::SphereMesh MainController::generate_sphere_mesh(float radius, unsigned int sectors,
+                                                                unsigned int stacks) {
     SphereMesh mesh;
 
     float x, y, z, xy;
@@ -541,7 +424,7 @@ MainController::SphereMesh MainController::generateSphereMesh(float radius, unsi
                 .push_back(z);
         }
     }
-
+   
     // Generating the indices
     for (unsigned int i = 0; i < stacks; ++i) {
         unsigned int k1 = i * (sectors + 1);
@@ -597,22 +480,6 @@ void MainController::terminate() {
                                                                            ->destroy();
     engine::core::Controller::get<engine::resources::ResourcesController>()->model("SpookyManor")
                                                                            ->destroy();
-
-    glDeleteVertexArrays(1, &floorVAO);
-    glDeleteBuffers(1, &floorVBO);
-
-    glDeleteVertexArrays(1, &grassVAO);
-    glDeleteBuffers(1, &grassVBO);
-
-    glDeleteVertexArrays(1, &lightCubeVAO);
-    glDeleteBuffers(1, &lightCubeVBO);
-
-    glDeleteVertexArrays(1, &sphereVAO);
-    glDeleteBuffers(1, &sphereVBO);
-
-    if (treeInstanceVBO != 0) {
-        glDeleteBuffers(1, &treeInstanceVBO);
-    }
 }
 
 void MainController::end_draw() {

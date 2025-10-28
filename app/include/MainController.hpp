@@ -3,6 +3,7 @@
 
 #include <engine/core/Controller.hpp>
 #include <engine/resources/Shader.hpp>
+#include <glm/glm.hpp>
 
 namespace app {
 
@@ -42,15 +43,17 @@ class MainController : public engine::core::Controller {
     void terminate() override;
 
 private:
-    unsigned int floorVAO, floorVBO;
-    unsigned int grassVAO, grassVBO;
-    unsigned int lightCubeVAO, lightCubeVBO, lightCubeEBO;
-    unsigned int sphereVAO, sphereVBO, sphereEBO;
-    size_t sphereIndexCount, lightCubeIndexCount;
+    unsigned int m_tree_amount{100};
+    std::vector<glm::mat4> m_tree_model_matrices;
 
-    unsigned int treeInstanceVBO = 0;
-    unsigned int treeAmount = 100;
-    std::vector<glm::mat4> treeModelMatrices;
+    // Lighting (moon + 2 light cubes)
+    glm::vec3 m_light_pos1;
+    glm::vec3 m_light_pos2;
+    glm::vec3 m_light_pos3;
+
+    // Lightning colors
+    glm::vec3 m_sphere_color;
+    glm::vec3 m_light_cube_color;
 
 public:
     std::string_view name() const override {
@@ -62,9 +65,7 @@ public:
         std::vector<unsigned int> indices;
     };
 
-    std::vector<float> generateSphereVertices(float radius, unsigned int sectors, unsigned int stacks);
-
-    SphereMesh generateSphereMesh(float radius, unsigned int sectors, unsigned int stacks);
+    SphereMesh generate_sphere_mesh(float radius, unsigned int sectors, unsigned int stacks);
 
 };
 } // app

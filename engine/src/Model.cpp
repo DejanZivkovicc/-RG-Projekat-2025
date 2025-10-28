@@ -17,7 +17,7 @@ void Model::destroy() {
     }
 }
 
-void Model::draw_instanced(const Shader *shader, GLsizei amount) {
+void Model::draw_instanced(const Shader *shader, int amount) {
     shader->use();
     for (auto &mesh: m_meshes) {
         mesh.draw_instanced(shader, amount);

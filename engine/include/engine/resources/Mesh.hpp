@@ -9,7 +9,6 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <engine/resources/Texture.hpp>
-#include <GL/gl.h>
 
 namespace engine::resources {
 /**
@@ -50,7 +49,7 @@ public:
     * @param shader The shader to use for drawing.
     * @param amount The number of instances to draw.
     */
-    void draw_instanced(const Shader *shader, GLsizei amount);
+    void draw_instanced(const Shader *shader, int amount);
 
     /**
     * @brief Adds a VBO containing instance-specific data (like mat4 model matrices) to the mesh's VAO.

@@ -66,7 +66,7 @@ void Mesh::draw(const Shader *shader) {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void Mesh::draw_instanced(const Shader *shader, GLsizei amount) {
+void Mesh::draw_instanced(const Shader *shader, int amount) {
     std::unordered_map<std::string_view, uint32_t> counts;
     std::string uniform_name;
 

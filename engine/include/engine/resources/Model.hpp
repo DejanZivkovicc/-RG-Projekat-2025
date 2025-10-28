@@ -35,7 +35,7 @@ public:
     * @param shader The shader to use for drawing.
     * @param amount The number of instances to draw.
     */
-    void draw_instanced(const Shader *shader, GLsizei amount);
+    void draw_instanced(const Shader *shader, int amount);
 
     /**
     * @brief Adds a VBO containing instance-specific data to all meshes in the model.
